@@ -1,15 +1,14 @@
 package aws
 
 import (
-	"encoding/json"
-
-	"github.com/Sirupsen/logrus"
 	"github.com/asoorm/serverless/provider"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/pkg/errors"
 )
+
+type Conf aws.Config
 
 func init() {
 	provider.RegisterProvider("aws-lambda", NewProvider)
@@ -20,12 +19,17 @@ func NewProvider() (provider.Provider, error) {
 }
 
 type Provider struct {
-	Region string
 	aws.Config
 }
 
 func (p *Provider) Init(conf provider.Conf) error {
-	p.Region = conf["region"]
+
+	c, ok := conf.(Conf)
+	if !ok {
+		return errors.New("unable to resolve conf type")
+	}
+
+	p.Region = c.Region
 
 	awsCfg, err := external.LoadDefaultAWSConfig()
 	if err != nil {
@@ -39,7 +43,7 @@ func (p *Provider) Init(conf provider.Conf) error {
 
 func (p Provider) List() ([]provider.Function, error) {
 
-	service := p.getService()
+	service := lambda.New(p.Config)
 
 	listFunctionsRequest := service.ListFunctionsRequest(nil)
 	listFunctionsOutput, err := listFunctionsRequest.Send()
@@ -48,8 +52,8 @@ func (p Provider) List() ([]provider.Function, error) {
 		return nil, errors.Wrap(err, provider.ErrorListingFunctions)
 	}
 
-	lfoJs, _ := json.MarshalIndent(listFunctionsOutput.Functions, "aws:", "  ")
-	logrus.Info(string(lfoJs))
+	//lfoJs, _ := json.Marshal(listFunctionsOutput.Functions)
+	//logrus.Debug(string(lfoJs))
 
 	functions := make([]provider.Function, 0)
 	for _, f := range listFunctionsOutput.Functions {
@@ -62,15 +66,12 @@ func (p Provider) List() ([]provider.Function, error) {
 		functions = append(functions, myFunc)
 	}
 
-	fJs, _ := json.Marshal(functions)
-	logrus.Info(string(fJs))
-
 	return functions, nil
 }
 
 func (p Provider) Invoke(function provider.Function, requestBody []byte) (*provider.Response, error) {
 
-	service := p.getService()
+	service := lambda.New(p.Config)
 
 	if function.GetVersion() == "" {
 		function.SetVersion("$LATEST")
@@ -102,11 +103,4 @@ func (p Provider) Invoke(function provider.Function, requestBody []byte) (*provi
 	}
 
 	return &res, nil
-}
-
-func (p Provider) getService() *lambda.Lambda {
-	cfg := p.Config
-	cfg.Region = p.Region
-
-	return lambda.New(cfg)
 }

@@ -4,23 +4,26 @@ import (
 	"log"
 
 	"github.com/asoorm/serverless/provider"
-	_ "github.com/asoorm/serverless/provider/aws"
+	"github.com/asoorm/serverless/provider/aws"
+	_ "github.com/asoorm/serverless/provider/azure"
 )
 
 func main() {
 
-	serverless, err := provider.GetProvider("aws-lambda")
+	lambda, err := provider.GetProvider("aws-lambda")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	conf := map[string]string{
-		"region": "eu-west-2",
+	conf := aws.Conf{
+		Region: "eu-west-2",
 	}
 
-	serverless.Init(conf)
+	if err := lambda.Init(conf); err != nil {
+		log.Fatal(err)
+	}
 
-	detail, err := serverless.List()
+	detail, err := lambda.List()
 	if err != nil {
 		log.Fatal(err)
 	}

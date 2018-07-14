@@ -8,7 +8,7 @@ const (
 	ErrorInvokingFunction    = "unable to invoke function"
 )
 
-type Conf map[string]string
+type Conf interface{}
 
 type Function struct {
 	Name    string
