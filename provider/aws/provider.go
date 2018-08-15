@@ -83,7 +83,7 @@ func (p Provider) Invoke(function provider.Function, requestBody []byte) (*provi
 		//InvocationType: lambda.InvocationTypeEvent, // To make async
 		LogType:   lambda.LogTypeTail,
 		Payload:   requestBody,
-		Qualifier: aws.String(function.GetName()),
+		Qualifier: aws.String(function.GetVersion()),
 	}
 
 	request := service.InvokeRequest(&input)
